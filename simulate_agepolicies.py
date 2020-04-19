@@ -1,10 +1,8 @@
 import numpy as np
-from numba import jit
 import global_parameters
 import scipy.special
 import csv
 from datetime import date
-import numba
 from seir_individual import run_complete_simulation
 import pandas as pd
 import datetime
@@ -27,32 +25,9 @@ EXP_ROOT_DIR = "age_policies"
 """
 
 # Real
-N=10000000.
+N=100000.
 load_population = True
 N_INFECTED_START = 5.
-
-# Test
-# N=10000.
-# load_population = False
-# N_INFECTED_START = 5.
-
-
-parser = argparse.ArgumentParser(description='Run lombardy age policy experiments in a distributed way.')
-parser.add_argument('--do_the_math', action='store_true', default=False, help='Given N_SIMS_PER_COMBO,\
-                N_SIMS_PER_JOB, and the parameter ranges (see source code), will report the range of\
-                indexes that you should pass to the slurm job script')
-parser.add_argument('N_SIMS_PER_COMBO', type=int, help='Number of simulations you plan to run per parameter combo')
-parser.add_argument('N_SIMS_PER_JOB', type=int, help='Number of simulations to run per job. Must be divisible by N_SIMS_PER_COMBO.')
-
-parser.add_argument('--index', type=int, default=-1, help='Index of the job to run. see --do_the_math')
-parser.add_argument('--seed_offset', type=int, default=0, help='seed = index + index_offset. \
-    So to run a new indepent set of simulations for the same parameter combos, this \
-    value must be larger than the total number of simulations you have run so far, \
-    i.e., total_combos * N_SIMS_PER_COMBO.')
-parser.add_argument('--sim_name', type=str, default="lombardy_agepolicy", help='Always specify a new directory for your jobs!')
-
-args = parser.parse_args()
-
 
 
 #########
@@ -120,23 +95,27 @@ all_possible_combos = list(product(mean_time_to_isolations, all_age_isolation_po
 NUM_COMBOS = len(all_possible_combos)
 print("NUM COMBOS:",NUM_COMBOS)
 
-N_SIMS_PER_COMBO = args.N_SIMS_PER_COMBO
-N_SIMS_PER_JOB = args.N_SIMS_PER_JOB
+N_SIMS_PER_COMBO = 1
+N_SIMS_PER_JOB = 1
+SEED_OFFSET = 0
+SIM_NAME = 'test_sim'
+
 
 if N_SIMS_PER_COMBO % N_SIMS_PER_JOB != 0:
     raise ValueError('Please ensure that N_SIMS_PER_COMBO is divisible by N_SIMS_PER_JOB')
 
-if args.do_the_math:
+do_the_math = True
+if do_the_math:
 
     n_indices = int(NUM_COMBOS*N_SIMS_PER_COMBO/N_SIMS_PER_JOB)
     print()
-    print("NUM COMBOS:",NUM_COMBOS)
-    print("NUM INDICES:",n_indices)
+    print("NUM COMBOS:", NUM_COMBOS)
+    print("NUM INDICES:", n_indices)
     print()
     print("RUNNING VIA SLURM")
     print("----------------------------")
     print("Please launch jobs indexed from 0 to %s, e.g.,"%(n_indices-1))
-    print("sbatch --array=0-%s job.simulate_agepolicies.sh %s %s %s %s"%(n_indices-1, N_SIMS_PER_COMBO, N_SIMS_PER_JOB, args.sim_name, args.seed_offset))
+    print("sbatch --array=0-%s job.simulate_agepolicies.sh %s %s %s %s"%(n_indices-1, N_SIMS_PER_COMBO, N_SIMS_PER_JOB, SIM_NAME, SEED_OFFSET))
     print()
     print("However, please note that you can only queue 10000 jobs at a time on FASRC!")
     print("")
@@ -144,21 +123,8 @@ if args.do_the_math:
     print("But the smaller N_SIMS_PER_JOB, the less time and memory it will take, but more jobs and CPUs.")
     exit()
 
-elif args.index == -1:
-    raise ValueError('Please set the index or pass --do_the_math.')
 
-
-INDEX = args.index
-
-# TODO: Pass in a parameter
-SEED_OFFSET = args.seed_offset
-
-
-#seed = param_combo_index*N_SIMS
-# seed = INDEX # 1M
-# seed = INDEX + 1000 # 50/100
-# seed = INDEX + 3000 # baseline
-# seed = INDEX + 3200 # baseline 2 - whole pop percents stayhome, no "lockdown"
+INDEX = -1
 
 JOBS_PER_COMB0 = N_SIMS_PER_COMBO//N_SIMS_PER_JOB
 
@@ -168,7 +134,6 @@ TRIAL_NUMBER = INDEX%JOBS_PER_COMB0
 seed = INDEX * N_SIMS_PER_JOB + SEED_OFFSET
 
 
-
 mtti_val = all_possible_combos[param_combo_index][0]
 combo_frac_stay_home = all_possible_combos[param_combo_index][1]
 
@@ -176,10 +141,7 @@ print(combo_frac_stay_home)
 print(mtti_val)
 print(TRIAL_NUMBER)
 
-
-
-
-sim_name = args.sim_name
+sim_name = SIM_NAME
 path = os.path.join(EXP_ROOT_DIR, sim_name)
 if not os.path.exists(path):
     os.makedirs(path)
@@ -218,7 +180,7 @@ for i in range(len(dates)):
 
 """1. SET FIXED SIMULATION PARAMETERS
 """
-params = numba.typed.Dict()
+params = {}
 params['n'] = N
 
 
@@ -540,7 +502,6 @@ for i in range(n_ages):
 # p_death_target *= params['mortality_multiplier']
 # p_death_target[p_death_target > 1] = 1
 
-
 #calibrate the probability of the severe -> critical transition to match the
 #overall CFR for each age/comorbidity combination
 #age group, diabetes (0/1), hypertension (0/1)
@@ -564,9 +525,11 @@ for i in range(n_ages):
             p_mild_severe[i, diabetes_state, hyper_state] = progression_rate[i, diabetes_state, hyper_state]
             p_severe_critical[i, diabetes_state, hyper_state] = severe_critical_multiplier[i]*progression_rate[i, diabetes_state, hyper_state]
             p_critical_death[i, diabetes_state, hyper_state] = critical_death_multiplier[i]*progression_rate[i, diabetes_state, hyper_state]
+
 #no critical cases under 20 (CDC)
 p_critical_death[:20] = 0
 p_severe_critical[:20] = 0
+
 #for now, just cap 80+yos with diabetes and hypertension
 p_critical_death[p_critical_death > 1] = 1
 

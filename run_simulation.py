@@ -7,8 +7,7 @@ from datetime import date
 import numba
 from seir_individual import run_complete_simulation
 
-"""1. SET FIXED SIMULATION PARAMETERS
-"""
+""" 1. SET FIXED SIMULATION PARAMETERS """
 
 
 params = numba.typed.Dict()
@@ -171,14 +170,6 @@ params['time_to_activation_std'] = 0.418
 
 
 p_infect_household = global_parameters.get_p_infect_household(int(params['n']), 4.6, params['time_to_activation_mean'], params['time_to_activation_std'], params['asymptomatic_transmissibility'])
-
-
-overall_p_critical_death = 0.49
-"""float: Probability that a critical individual dies. This does _not_ affect
-overall mortality, which is set separately, but rather how many individuals
-end up in critical state. 0.49 is from
-http://weekly.chinacdc.cn/en/article/id/e53946e2-c6c4-41e9-9a9b-fea8db1a8f51
-"""
 
 
 overall_p_critical_death = 0.49

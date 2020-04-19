@@ -3,7 +3,7 @@ import scipy.stats
 import sample_households
 import sample_comorbidities
 
-def calibrate_p_document_mild(p_target, country, p_mild_severe, mean_time_mild_recovery, mean_time_to_severe):
+def calibrate_p_document_mild(p_target, mean_time_mild_recovery):
     '''
     Sets per-day probability of documentation for mild cases such that the cumulative
     probability of documentation before recovery matches p_target

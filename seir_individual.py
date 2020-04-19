@@ -8,7 +8,8 @@ import pickle
 
 """3. RUN SIMULATION."""
 
-def run_complete_simulation(seed, country, contact_matrix, p_mild_severe, p_severe_critical, p_critical_death, mean_time_to_isolate_factor, lockdown_factor_age, p_infect_household, fraction_stay_home, params, load_population=False):
+def run_complete_simulation(seed, country, contact_matrix, p_mild_severe, p_severe_critical, p_critical_death, mean_time_to_isolate_factor, lockdown_factor_age, 
+    p_infect_household, fraction_stay_home, params, load_population=False):
     '''
     Runs simulation with given parameters (see run_simulation for details).
     If load_population is true, reads in the simulated population for the given country and size.
