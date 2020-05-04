@@ -32,15 +32,16 @@ def get_mother_birth_age_distribution(country):
     return np.array(mother_birth_age_distribution)
 
 
-def sample_households(n: int, household_probs_param: list, locations: np.array, age_distribution_param: list, 
+def sample_households(n: int, initial_n: int, household_probs_param: list, locations: np.array, age_distribution_param: list, 
                       mother_age_distribution: np.array, community_id: int, scale_location_var: float = 0.1):
     '''
     Sampling households, according to demographics
     
     Inputs:
         n: Size of the population to generate
+        initial_n: Size of the previously generated population
         household_probs_param: [single household, couple without children, single parent +1/2/3 children, 
-            couple +1/2/3 children, family without a nucleus, nucleus with other persons, 
+            couple +1/2/3 children, family without a nucleus, nucleus with other people, 
             households with two or more nuclei (a and b)]
         locations: np.array in format (m, 2) where the axis 1 represents (latitude, longitude)
         age_distribution_param: list or np.array of the ages distribution
@@ -63,8 +64,7 @@ def sample_households(n: int, household_probs_param: list, locations: np.array, 
     
     max_household_size = 6
     
-    households = np.zeros((n, max_household_size), dtype=np.int)
-    households[:] = -1
+    households = []
     
     age = np.zeros(n, dtype=np.int)    
     n_ages = len(age_distribution_param)
@@ -240,15 +240,14 @@ def sample_households(n: int, household_probs_param: list, locations: np.array, 
             
         # Update list of household contacts accordingly 
         for i in range(num_generated, num_generated+generated_this_step):
-            curr_pos = 0
+            household = []
             for j in range(num_generated, num_generated+generated_this_step):
-                if i != j:
-                    households[i, curr_pos] = j
-                    curr_pos += 1
+                if j != i:
+                    household.append(j + initial_n)
+            households.append(household)
         num_generated += generated_this_step
         
     return households, age, location, community
-
 
 
 def sample_households_china(n):
